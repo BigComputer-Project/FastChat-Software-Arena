@@ -51,8 +51,14 @@ VALID_GRADIO_CODE_LANGUAGES = [
     'sql-msSQL', 'sql-mySQL', 'sql-mariaDB', 'sql-sqlite', 'sql-cassandra', 'sql-plSQL', 'sql-hive', 'sql-pgSQL', 'sql-gql', 'sql-gpSQL', 'sql-sparkSQL', 
     'sql-esper'
 ]
+'''
+Languages that gradio code component can render.
+'''
 
 RUN_CODE_BUTTON_HTML = "<button style='background-color: #4CAF50; border: none; color: white; padding: 10px 24px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; margin: 4px 2px; cursor: pointer; border-radius: 12px;'>Click to Run in Sandbox</button>"
+'''
+Button in the chat to run the code in the sandbox.
+'''
 
 
 GENERAL_SANDBOX_INSTRUCTION = """You are an expert software engineer.
