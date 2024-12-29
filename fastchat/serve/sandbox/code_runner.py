@@ -18,18 +18,18 @@ API key for the e2b API.
 '''
 
 class SandboxEnvironment(StrEnum):
-    AUTO = 'Auto'
+    AUTO = 'auto'
     # Code Interpreter
-    PYTHON_CODE_INTERPRETER = 'Python Code Interpreter'
-    JAVASCRIPT_CODE_INTERPRETER = 'Javascript Code Interpreter'
+    PYTHON_CODE_INTERPRETER = 'python_code_interpreter'
+    JAVASCRIPT_CODE_INTERPRETER = 'javascript_code_interpreter'
     # Web UI Frameworks
-    HTML = 'HTML'
-    REACT = 'React'
-    VUE = 'Vue'
-    GRADIO = 'Gradio'
-    STREAMLIT = 'Streamlit'
-    NICEGUI = 'NiceGUI'
-    PYGAME = 'PyGame'
+    HTML = 'html'
+    REACT = 'react'
+    VUE = 'vue'
+    GRADIO = 'gradio'
+    STREAMLIT = 'streamlit'
+    NICEGUI = 'nicegui'
+    PYGAME = 'pygame'
 
 
 SUPPORTED_SANDBOX_ENVIRONMENTS: list[str] = [
@@ -60,45 +60,68 @@ RUN_CODE_BUTTON_HTML = "<button style='background-color: #4CAF50; border: none; 
 Button in the chat to run the code in the sandbox.
 '''
 
-SANDBOX_CODE_TAG = "***REMOTE SANDBOX CODE***"
 
-GENERAL_SANDBOX_INSTRUCTION = """ You are an expert Software Engineer. Generate code for a single file to be executed in a sandbox. Do not use external libraries or import external files outside of the allowlist. You can output information if needed. The code should be in the markdown format:
-***REMOTE SANDBOX CODE***:
-```<language>
-<code>
+GENERAL_SANDBOX_INSTRUCTION = """You are an expert software engineer.
+You have the capability to generate **executable** code specifically designed for sandbox environments. When tasked with creating such code, you must ensure it is both secure and optimized for the provided sandbox environments. All code must be entirely **self-contained** within a **single** file, as the sandbox environment can only execute single-file applications.
+
+## Code Format
+When generating code intended for sandbox execution, you MUST strictly adhere to the following format:
+- Begin with the trigger `>>> sandbox("{environment_name}")` followed by a code block in the specified language.
+- Do NOT place the sandbox trigger inside ANY code block.
+- Follow the trigger with a properly formatted code block in the specified language as demonstrated below:
+>>> sandbox("{environment_name}")
+```[language]
+[your code here]
 ```
+
+## Sandbox Guidelines
+- Regardless of whether the user explicitly requests using the sandbox or executing code, ALWAYS use the sandbox environment and execute the code by default when generating executable code.  
+The only exceptions are:  
+    1. The user explicitly states that execution is not required;  
+    2. The user's query is about general topics that are clearly non-executable, such as theoretical concepts or general code explanations.  
+- Begin responses with relevant context, technical explanations, or reasoning processes before introducing code execution. The sandbox trigger should be integrated naturally within your response.
+- Use ONE sandbox environment per response, with EXACTLY one code block within it.
+- When modifying code, provide a complete new sandbox with the full updated codebase. Each sandbox operates independently with no connection to previous sandboxes, and no code or state is preserved between different sandboxes. NEVER use partial updates, omissions, or references to previous code blocks.
+
+## Environment Specifications
+When using this sandbox environment, follow these specifications:
 """
 
 DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION = """
-Generate self-contained Python code for execution in a code interpreter.
-Use only the standard library or these pre-installed libraries: aiohttp, beautifulsoup4, bokeh, gensim, imageio, joblib, librosa, matplotlib, nltk, numpy, opencv-python, openpyxl, pandas, plotly, pytest, python-docx, pytz, requests, scikit-image, scikit-learn, scipy, seaborn, soundfile, spacy, textblob, tornado, urllib3, xarray, xlrd, sympy.
-Output via stdout, stderr, or render images, plots, and tables.
+Generate self-contained Python code for execution with the following capabilities and requirements:
+- Use ONLY the standard library or these pre-installed packages: 
+    aiohttp, beautifulsoup4, bokeh, gensim, imageio, joblib, librosa, matplotlib, nltk, numpy, opencv-python, openpyxl, pandas, plotly, pytest, python-docx, pytz, requests, scikit-image, scikit-learn, scipy, seaborn, soundfile, spacy, textblob, tornado, urllib3, xarray, xlrd, sympy
+- Code MUST produce output through stdout/stderr for text data and leverage matplotlib/plotly for data visualization
 """
 
 DEFAULT_JAVASCRIPT_CODE_INTERPRETER_INSTRUCTION = """
-Generate JavaScript code suitable for execution in a code interpreter environment.
-Ensure the code is self-contained and does not rely on browser-specific APIs.
-You can output in stdout, stderr, or render images, plots, and tables.
+Generate self-contained JavaScript code for a Node.js-style environment with these requirements:
+- Code MUST NOT rely on any browser-specific features or external dependencies
+- Output can be generated through stdout/stderr, or by rendering images, plots, and tables
 """
 
 DEFAULT_HTML_SANDBOX_INSTRUCTION = """
-Generate HTML code for a single HTML file to be executed in a sandbox. You can add style and javascript. Do not use external libraries or import external files.
+Generate completely self-contained HTML code within a single file:
+- All CSS and JavaScript MUST be included inline within the HTML file
+- External libraries and resources are NOT permitted
 """
 
-DEFAULT_REACT_SANDBOX_INSTRUCTION = """ Generate typescript for a single-file Next.js 13+ React component tsx file. . Do not use external libs or import external files. Allowed libs: ["nextjs@14.2.5", "typescript", "@types/node", "@types/react", "@types/react-dom", "postcss", "tailwindcss", "shadcn"] """
-'''
-Default sandbox prompt instruction.
-'''
+DEFAULT_REACT_SANDBOX_INSTRUCTION = """
+Generate a self-contained, single-file Next.js 13+ React component in TypeScript:
+- Available libraries:
+    nextjs@14.2.5, typescript, @types/node, @types/react, @types/react-dom, postcss, tailwindcss, shadcn
+- External libraries and file imports are NOT permitted
+"""
 
-DEFAULT_VUE_SANDBOX_INSTRUCTION = """ Generate TypeScript for a single-file Vue.js 3+ component (SFC) in .vue format. The component should be a simple custom page in a styled `<div>` element. Do not include <NuxtWelcome /> or reference any external components. Surround the code with ``` in markdown. Do not use external libraries or import external files. Allowed libs: ["nextjs@14.2.5", "typescript", "@types/node", "@types/react", "@types/react-dom", "postcss", "tailwindcss", "shadcn"], """
-'''
-Default sandbox prompt instruction for vue.
-'''
+DEFAULT_VUE_SANDBOX_INSTRUCTION = """
+Generate a self-contained Vue.js 3+ Single-File Component using TypeScript:
+- Component MUST be encapsulated within a styled `<div>` element
+- External component dependencies are NOT allowed, including built-in components like <NuxtWelcome />
+"""
 
-DEFAULT_PYGAME_SANDBOX_INSTRUCTION = (
-'''
-Generate a pygame code snippet for a single file.
-Write pygame main method in async function like:
+DEFAULT_PYGAME_SANDBOX_INSTRUCTION = """
+Create PyGame applications that follow these structural requirements:
+- Main game loop MUST be implemented as an async function following this structure:
 ```python
 import asyncio
 import pygame
@@ -113,60 +136,97 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 ```
-'''
-)
+"""
 
 DEFAULT_GRADIO_SANDBOX_INSTRUCTION = """
-Generate Python code for a single-file Gradio application using the Gradio library.
-Do not use external libraries or import external files outside of the allowed list.
-Allowed libraries: ["gradio", "pandas", "numpy", "matplotlib", "requests", "seaborn", "plotly"]
+Generate a single-file Gradio application using Python:
+- Available libraries:
+    gradio, pandas, numpy, matplotlib, requests, seaborn, plotly
+- External libraries and file imports beyond the allowed list are NOT permitted
 """
 
 DEFAULT_NICEGUI_SANDBOX_INSTRUCTION = """
-Generate a Python NiceGUI code snippet for a single file.
+Generate a single-file NiceGUI application in Python:
+- ALL functionality MUST be contained within a single file
+- Application should implement a complete, self-contained interface
 """
 
 DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION = """
-Generate Python code for a single-file Streamlit application using the Streamlit library.
-The app should automatically reload when changes are made. 
-Do not use external libraries or import external files outside of the allowed list.
-Allowed libraries: ["streamlit", "pandas", "numpy", "matplotlib", "requests", "seaborn", "plotly"]
+Generate a single-file Streamlit application using Python:
+- Available libraries:
+    streamlit, pandas, numpy, matplotlib, requests, seaborn, plotly
+- External libraries and file imports beyond the allowed list are NOT permitted
+- Application MUST support automatic reloading upon code changes
 """
 
-AUTO_SANDBOX_INSTRUCTION = (
-"""
-You are an expert Software Engineer. Generate code for a single file to be executed in a sandbox. Do not use external libraries or import external files outside of the allowlist. You can output information if needed. The code should be in the markdown format:
-***REMOTE SANDBOX CODE***[<sandbox_environment_name>]:
-```<language>
-<code>
+AUTO_SANDBOX_INSTRUCTION = f"""You are an expert software engineer.
+You have the capability to generate **executable** code specifically designed for sandbox environments. When tasked with creating such code, you must ensure it is both secure and optimized for the provided sandbox environments. All code must be entirely **self-contained** within a **single** file, as the sandbox environment can only execute single-file applications.
+
+## Code Format
+When generating code intended for sandbox execution, you MUST strictly adhere to the following format:
+- Begin with the trigger `>>> sandbox("[environment_name]")` followed by a code block in the specified language.
+- Do NOT place the sandbox trigger inside ANY code block.
+- Follow the trigger with a properly formatted code block in the specified language as demonstrated below:
+>>> sandbox("[environment_name]")
+```[language]
+[your code here]
 ```
 
-You can choose from the following sandbox environments:
-"""
-+ 'Sandbox Environment Name: ' + SandboxEnvironment.PYTHON_CODE_INTERPRETER + '\n' + DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION.strip() + '\n------\n'
-+ 'Sandbox Environment Name: ' + SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER + '\n' + DEFAULT_JAVASCRIPT_CODE_INTERPRETER_INSTRUCTION.strip() + '\n------\n'
-+ 'Sandbox Environment Name: ' + SandboxEnvironment.HTML + '\n' + DEFAULT_HTML_SANDBOX_INSTRUCTION.strip() + '\n------\n'
-+ 'Sandbox Environment Name: ' + SandboxEnvironment.REACT + '\n' + DEFAULT_REACT_SANDBOX_INSTRUCTION.strip() + '\n------\n'
-+ 'Sandbox Environment Name: ' + SandboxEnvironment.VUE + '\n' + DEFAULT_VUE_SANDBOX_INSTRUCTION.strip() + '\n------\n'
-+ 'Sandbox Environment Name: ' + SandboxEnvironment.GRADIO + '\n' + DEFAULT_GRADIO_SANDBOX_INSTRUCTION.strip() + '\n------\n'
-+ 'Sandbox Environment Name: ' + SandboxEnvironment.STREAMLIT + '\n' + DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION.strip() + '\n------\n'
-+ 'Sandbox Environment Name: ' + SandboxEnvironment.NICEGUI + '\n' + DEFAULT_NICEGUI_SANDBOX_INSTRUCTION.strip() + '\n------\n'
-+ 'Sandbox Environment Name: ' + SandboxEnvironment.PYGAME + '\n' + DEFAULT_PYGAME_SANDBOX_INSTRUCTION.strip() + '\n------\n'
-)
+## Sandbox Guidelines
+- Regardless of whether the user explicitly requests using the sandbox or executing code, ALWAYS use the sandbox environment and execute the code by default when generating executable code.  
+The only exceptions are:  
+    1. The user explicitly states that execution is not required;  
+    2. The user's query is about general topics that are clearly non-executable, such as theoretical concepts or general code explanations.  
+- Begin responses with relevant context, technical explanations, or reasoning processes before introducing code execution. The sandbox trigger should be integrated naturally within your response.
+- Use ONE sandbox environment per response, with EXACTLY one code block within it.
+- When modifying code, provide a complete new sandbox with the full updated codebase. Each sandbox operates independently with no connection to previous sandboxes, and no code or state is preserved between different sandboxes. NEVER use partial updates, omissions, or references to previous code blocks.
+
+## Supported Environments
+
+### Python Code Interpreter (>>> sandbox("{SandboxEnvironment.PYTHON_CODE_INTERPRETER}"))
+{DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION.strip()}
+
+### JavaScript Code Interpreter (>>> sandbox("{SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER}"))
+{DEFAULT_JAVASCRIPT_CODE_INTERPRETER_INSTRUCTION.strip()}
+
+### HTML (>>> sandbox("{SandboxEnvironment.HTML}"))
+{DEFAULT_HTML_SANDBOX_INSTRUCTION.strip()}
+
+### React (>>> sandbox("{SandboxEnvironment.REACT}"))
+{DEFAULT_REACT_SANDBOX_INSTRUCTION.strip()}
+
+### Vue (>>> sandbox("{SandboxEnvironment.VUE}"))
+{DEFAULT_VUE_SANDBOX_INSTRUCTION.strip()}
+
+### Gradio (>>> sandbox("{SandboxEnvironment.GRADIO}"))
+{DEFAULT_GRADIO_SANDBOX_INSTRUCTION.strip()}
+
+### Streamlit (>>> sandbox("{SandboxEnvironment.STREAMLIT}"))
+{DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION.strip()}
+
+### NiceGUI (>>> sandbox("{SandboxEnvironment.NICEGUI}"))
+{DEFAULT_NICEGUI_SANDBOX_INSTRUCTION.strip()}
+
+### PyGame (>>> sandbox("{SandboxEnvironment.PYGAME}"))
+{DEFAULT_PYGAME_SANDBOX_INSTRUCTION.strip()}
+""".strip()
 
 DEFAULT_SANDBOX_INSTRUCTIONS: dict[SandboxEnvironment, str] = {
     SandboxEnvironment.AUTO: AUTO_SANDBOX_INSTRUCTION.strip(),
-    SandboxEnvironment.PYTHON_CODE_INTERPRETER: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION.strip(),
-    SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_JAVASCRIPT_CODE_INTERPRETER_INSTRUCTION.strip(),
-    SandboxEnvironment.HTML: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_HTML_SANDBOX_INSTRUCTION.strip(),
-    SandboxEnvironment.REACT: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_REACT_SANDBOX_INSTRUCTION.strip(),
-    SandboxEnvironment.VUE: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_VUE_SANDBOX_INSTRUCTION.strip(),
-    SandboxEnvironment.GRADIO: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_GRADIO_SANDBOX_INSTRUCTION.strip(),
-    SandboxEnvironment.STREAMLIT: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION.strip(),
-    SandboxEnvironment.NICEGUI: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_NICEGUI_SANDBOX_INSTRUCTION.strip(),
-    SandboxEnvironment.PYGAME: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_PYGAME_SANDBOX_INSTRUCTION.strip(),
+    SandboxEnvironment.PYTHON_CODE_INTERPRETER: GENERAL_SANDBOX_INSTRUCTION.format(environment_name=SandboxEnvironment.PYTHON_CODE_INTERPRETER) + DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION.strip(),
+    SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER: GENERAL_SANDBOX_INSTRUCTION.format(environment_name=SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER) + DEFAULT_JAVASCRIPT_CODE_INTERPRETER_INSTRUCTION.strip(),
+    SandboxEnvironment.HTML: GENERAL_SANDBOX_INSTRUCTION.format(environment_name=SandboxEnvironment.HTML) + DEFAULT_HTML_SANDBOX_INSTRUCTION.strip(),
+    SandboxEnvironment.REACT: GENERAL_SANDBOX_INSTRUCTION.format(environment_name=SandboxEnvironment.REACT) + DEFAULT_REACT_SANDBOX_INSTRUCTION.strip(),
+    SandboxEnvironment.VUE: GENERAL_SANDBOX_INSTRUCTION.format(environment_name=SandboxEnvironment.VUE) + DEFAULT_VUE_SANDBOX_INSTRUCTION.strip(),
+    SandboxEnvironment.GRADIO: GENERAL_SANDBOX_INSTRUCTION.format(environment_name=SandboxEnvironment.GRADIO) + DEFAULT_GRADIO_SANDBOX_INSTRUCTION.strip(),
+    SandboxEnvironment.STREAMLIT: GENERAL_SANDBOX_INSTRUCTION.format(environment_name=SandboxEnvironment.STREAMLIT) + DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION.strip(),
+    SandboxEnvironment.NICEGUI: GENERAL_SANDBOX_INSTRUCTION.format(environment_name=SandboxEnvironment.NICEGUI) + DEFAULT_NICEGUI_SANDBOX_INSTRUCTION.strip(),
+    SandboxEnvironment.PYGAME: GENERAL_SANDBOX_INSTRUCTION.format(environment_name=SandboxEnvironment.PYGAME) + DEFAULT_PYGAME_SANDBOX_INSTRUCTION.strip(),
 }
 
+print(AUTO_SANDBOX_INSTRUCTION)
+print("-" * 80)
+print(DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.PYTHON_CODE_INTERPRETER])
 
 SandboxGradioSandboxComponents: TypeAlias =  tuple[
     gr.Markdown | Any,  # sandbox_output
@@ -274,12 +334,12 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool=False) -> tup
             2. code language, 
             3. sandbox environment if auto environment is enabled, otherwise None
     '''
-    # Regular expression to match code blocks with optional language
-    code_block_regex = rf'{re.escape(SANDBOX_CODE_TAG)}(\[(?P<sandbox_env_name>[^\]]+)\])?:\s*```(?P<code_lang>\w+)?\n(?P<code>.*?)```'
+    # Regular expression to match code in ">>> sandbox" code blocks
+    code_block_regex = r'>>> sandbox\("(?P<sandbox_env_name>[^"]+)"\)\s*```(?P<code_lang>\w+)?\n(?P<code>.*?)```'
 
     match = re.search(code_block_regex, message, re.DOTALL)
     if not match:
-        # if no re matched code block is found, return None
+        # if no matching code block is found, return None
         return None
 
     sandbox_env_name = match.group('sandbox_env_name') or None
