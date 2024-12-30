@@ -269,9 +269,10 @@ class ChatbotSandboxState(TypedDict):
     '''
     The code language to execute in the sandbox.
     '''
+    btn_list_length: int | None
 
 
-def create_chatbot_sandbox_state() -> ChatbotSandboxState:
+def create_chatbot_sandbox_state(btn_list_length: int) -> ChatbotSandboxState:
     '''
     Create a new chatbot sandbox state.
     '''
@@ -282,7 +283,8 @@ def create_chatbot_sandbox_state() -> ChatbotSandboxState:
         "sandbox_instruction": None,
         "code_to_execute": "",
         "code_language": None,
-        "enabled_round": 0
+        "enabled_round": 0,
+        "btn_list_length": btn_list_length
     }
 
 
@@ -315,7 +317,7 @@ def update_sandbox_config(
 
 
 def update_visibility(visible):
-    return [gr.update(visible=visible)] * 13
+    return [gr.update(visible=visible)] *12
 
 
 def update_visibility_for_single_model(visible: bool, component_cnt: int):
