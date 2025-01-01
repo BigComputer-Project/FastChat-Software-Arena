@@ -31,6 +31,7 @@ from fastchat.serve.gradio_block_arena_vision_named import (
     build_side_by_side_vision_ui_named,
     load_demo_side_by_side_vision_named,
 )
+from fastchat.serve.gradio_block_arena_jupyter import build_side_by_side_ui_jupyter
 from fastchat.serve.gradio_global_state import Context
 
 from fastchat.serve.gradio_web_server import (
@@ -157,7 +158,13 @@ window.__gradio_mode__ = "app";
                         context, random_questions=args.random_questions
                     )
 
-                with gr.Tab("💬 Direct Chat", id=2) as direct_tab:
+                with gr.Tab("⚔️ Arena (Jupyter)", id=2) as jupyter_tab:
+                    jupyter_tab.select(None, None, None, js=alert_js)
+                    jupyter_list = build_side_by_side_ui_jupyter(
+                        context.text_models
+                    )
+
+                with gr.Tab("💬 Direct Chat", id=3) as direct_tab:
                     direct_tab.select(None, None, None, js=alert_js)
                     single_model_list = build_single_vision_language_model_ui(
                         context,
@@ -178,7 +185,13 @@ window.__gradio_mode__ = "app";
                         context.text_models
                     )
 
-                with gr.Tab("💬 Direct Chat", id=2) as direct_tab:
+                with gr.Tab("⚔️ Arena (Jupyter)", id=2) as jupyter_tab:
+                    jupyter_tab.select(None, None, None, js=alert_js)
+                    jupyter_list = build_side_by_side_ui_jupyter(
+                        context.text_models
+                    )
+
+                with gr.Tab("💬 Direct Chat", id=3) as direct_tab:
                     direct_tab.select(None, None, None, js=alert_js)
                     single_model_list = build_single_model_ui(
                         context.text_models, add_promotion_links=True
@@ -188,11 +201,12 @@ window.__gradio_mode__ = "app";
                 [inner_tabs]
                 + side_by_side_anony_list
                 + side_by_side_named_list
+                # + jupyter_list
                 + single_model_list
             )
 
             if elo_results_file:
-                with gr.Tab("🏆 Leaderboard", id=3):
+                with gr.Tab("🏆 Leaderboard", id=4):
                     build_leaderboard_tab(
                         elo_results_file,
                         leaderboard_table_file,
@@ -200,7 +214,7 @@ window.__gradio_mode__ = "app";
                         show_plot=True,
                     )
 
-            with gr.Tab("ℹ️ About Us", id=4):
+            with gr.Tab("ℹ️ About Us", id=5):
                 about = build_about()
 
         context_state = gr.State(context)
