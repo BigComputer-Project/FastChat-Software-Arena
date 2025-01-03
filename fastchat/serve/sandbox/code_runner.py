@@ -98,6 +98,7 @@ DEFAULT_JAVASCRIPT_CODE_INTERPRETER_INSTRUCTION = """
 Generate self-contained JavaScript code for a Node.js-style environment with these requirements:
 - Code MUST NOT rely on any browser-specific features or external dependencies
 - Output can be generated through stdout/stderr, or by rendering images, plots, and tables
+- Do NOT use this environment for browser-based JavaScript code; consider the HTML/React/Vue environments instead if available
 """
 
 DEFAULT_HTML_SANDBOX_INSTRUCTION = """
@@ -163,51 +164,85 @@ AUTO_SANDBOX_INSTRUCTION = f"""You are an expert software engineer.
 You have the capability to generate **executable** code specifically designed for sandbox environments. When tasked with creating such code, you must ensure it is both secure and optimized for the provided sandbox environments. All code must be entirely **self-contained** within a **single** file, as the sandbox environment can only execute single-file applications.
 
 ## Code Format
-When generating code intended for sandbox execution, you MUST strictly adhere to the following format:
-- Begin with the trigger `>>> sandbox("[environment_name]")` followed by a code block in the specified language.
-- Do NOT place the sandbox trigger inside ANY code block.
-- Follow the trigger with a properly formatted code block in the specified language as demonstrated below:
->>> sandbox("[environment_name]")
-```[language]
-[your code here]
+When generating code intended for sandbox execution, you MUST strictly follow this exact format with all mandatory sections in the specified order:
+
+1. Begin with the mandatory [Sandbox Reasoning] section that contains:
+   Your complete thought process explaining:
+   - Core requirements analysis of the task
+   - Technical capabilities needed for implementation
+   - Evaluation of available sandbox environments
+   - Environmental constraints and considerations
+   - ONLY AT THE END: Final environment selection with justification
+
+2. If and only if additional packages beyond the pre-installed ones are required:
+   Include the optional [Additional Packages] section with package installation commands using appropriate package manager (pip, npm, etc.)
+
+3. Declare the mandatory [Sandbox: <environment>] section:
+   - Must specify exactly one environment from the supported list
+   - Use the exact format with square brackets
+
+4. Provide the mandatory code implementation:
+   ```<language>
+   <your complete code>
+   ```
+
+Below is the STRICT format for generating executable code (with optional section in parentheses):
+
+[Sandbox Reasoning]
+<your step-by-step analysis environment selection reasoning>
+([Additional Packages]
+```bash
+# Installation commands
+```)
+[Sandbox: <environment>]
+```<language>
+<your complete code>
 ```
+
+Where:
+- Square brackets [] must be used for all section headers
+- Angle brackets <> indicate values you must replace
+- All sections except [Additional Packages] are mandatory
+- Never enclose the overall format structure in code blocks
+- Reasoning must follow a step-by-step analysis with the conclusion at the end
 
 ## Sandbox Guidelines
 - Regardless of whether the user explicitly requests using the sandbox or executing code, ALWAYS use the sandbox environment and execute the code by default when generating executable code.  
 The only exceptions are:  
     1. The user explicitly states that execution is not required;  
     2. The user's query is about general topics that are clearly non-executable, such as theoretical concepts or general code explanations.  
-- Begin responses with relevant context, technical explanations, or reasoning processes before introducing code execution. The sandbox trigger should be integrated naturally within your response.
+- Begin responses with relevant context, technical explanations, or reasoning processes before introducing code execution. The sandbox trigger (including reasoning section) should be integrated naturally within your response.
+- Reasoning section is not visible to the user and is only used to guide your thought process, so do NOT directly start your response with it.
 - Use ONE sandbox environment per response, with EXACTLY one code block within it.
 - When modifying code, provide a complete new sandbox with the full updated codebase. Each sandbox operates independently with no connection to previous sandboxes, and no code or state is preserved between different sandboxes. NEVER use partial updates, omissions, or references to previous code blocks.
 
 ## Supported Environments
 
-### Python Code Interpreter (>>> sandbox("{SandboxEnvironment.PYTHON_CODE_INTERPRETER}"))
+### Python Code Interpreter ([Sandbox: {SandboxEnvironment.PYTHON_CODE_INTERPRETER}])
 {DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION.strip()}
 
-### JavaScript Code Interpreter (>>> sandbox("{SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER}"))
+### JavaScript Code Interpreter ([Sandbox: {SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER}])
 {DEFAULT_JAVASCRIPT_CODE_INTERPRETER_INSTRUCTION.strip()}
 
-### HTML (>>> sandbox("{SandboxEnvironment.HTML}"))
+### HTML ([Sandbox: {SandboxEnvironment.HTML}])
 {DEFAULT_HTML_SANDBOX_INSTRUCTION.strip()}
 
-### React (>>> sandbox("{SandboxEnvironment.REACT}"))
+### React ([Sandbox: {SandboxEnvironment.REACT}])
 {DEFAULT_REACT_SANDBOX_INSTRUCTION.strip()}
 
-### Vue (>>> sandbox("{SandboxEnvironment.VUE}"))
+### Vue ([Sandbox: {SandboxEnvironment.VUE}])
 {DEFAULT_VUE_SANDBOX_INSTRUCTION.strip()}
 
-### Gradio (>>> sandbox("{SandboxEnvironment.GRADIO}"))
+### Gradio ([Sandbox: {SandboxEnvironment.GRADIO}])
 {DEFAULT_GRADIO_SANDBOX_INSTRUCTION.strip()}
 
-### Streamlit (>>> sandbox("{SandboxEnvironment.STREAMLIT}"))
+### Streamlit ([Sandbox: {SandboxEnvironment.STREAMLIT}])
 {DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION.strip()}
 
-### NiceGUI (>>> sandbox("{SandboxEnvironment.NICEGUI}"))
+### NiceGUI ([Sandbox: {SandboxEnvironment.NICEGUI}])
 {DEFAULT_NICEGUI_SANDBOX_INSTRUCTION.strip()}
 
-### PyGame (>>> sandbox("{SandboxEnvironment.PYGAME}"))
+### PyGame ([Sandbox: {SandboxEnvironment.PYGAME}])
 {DEFAULT_PYGAME_SANDBOX_INSTRUCTION.strip()}
 """.strip()
 
@@ -335,7 +370,7 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool=False) -> tup
             3. sandbox environment if auto environment is enabled, otherwise None
     '''
     # Regular expression to match code in ">>> sandbox" code blocks
-    code_block_regex = r'>>> sandbox\("(?P<sandbox_env_name>[^"]+)"\)\s*```(?P<code_lang>\w+)?\n(?P<code>.*?)```'
+    code_block_regex = r'\[Sandbox: (?P<sandbox_env_name>[^\]]+)\]\s*```(?P<code_lang>\w+)?\n(?P<code>.*?)```'
 
     match = re.search(code_block_regex, message, re.DOTALL)
     if not match:
