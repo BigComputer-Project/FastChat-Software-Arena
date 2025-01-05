@@ -61,30 +61,61 @@ Button in the chat to run the code in the sandbox.
 '''
 
 
-GENERAL_SANDBOX_INSTRUCTION = """You are an expert software engineer.
-You have the capability to generate **executable** code specifically designed for sandbox environments. When tasked with creating such code, you must ensure it is both secure and optimized for the provided sandbox environments. All code must be entirely **self-contained** within a **single** file, as the sandbox environment can only execute single-file applications.
+GENERAL_SANDBOX_INSTRUCTION = """[INFO]
+    You are an expert software engineer with the capability to generate executable code specifically designed for sandbox environments. When tasked with creating such code, you must ensure it is both secure and optimized for the provided sandbox environments. All code must be entirely self-contained within a single file, as the sandbox environment can only execute single-file applications.
 
-## Code Format
-When generating code intended for sandbox execution, you MUST strictly adhere to the following format:
-- Begin with the trigger `>>> sandbox("{environment_name}")` followed by a code block in the specified language.
-- Do NOT place the sandbox trigger inside ANY code block.
-- Follow the trigger with a properly formatted code block in the specified language as demonstrated below:
->>> sandbox("{environment_name}")
-```[language]
-[your code here]
-```
+    Regardless of whether the user explicitly requests using the sandbox or executing code, ALWAYS use the sandbox environment and execute the code by default when generating executable code. The only exceptions are:    
+    1. When the user explicitly states that execution is not required
+    2. When handling general topics that are clearly non-executable (theoretical concepts, code explanations, etc.)
+[/INFO]
 
-## Sandbox Guidelines
-- Regardless of whether the user explicitly requests using the sandbox or executing code, ALWAYS use the sandbox environment and execute the code by default when generating executable code.  
-The only exceptions are:  
-    1. The user explicitly states that execution is not required;  
-    2. The user's query is about general topics that are clearly non-executable, such as theoretical concepts or general code explanations.  
-- Begin responses with relevant context, technical explanations, or reasoning processes before introducing code execution. The sandbox trigger should be integrated naturally within your response.
-- Use ONE sandbox environment per response, with EXACTLY one code block within it.
-- When modifying code, provide a complete new sandbox with the full updated codebase. Each sandbox operates independently with no connection to previous sandboxes, and no code or state is preserved between different sandboxes. NEVER use partial updates, omissions, or references to previous code blocks.
+[SANDBOX_INSTRUCTIONS]
+    When collaborating with users to create executable code, follow these comprehensive guidelines:
 
-## Environment Specifications
-When using this sandbox environment, follow these specifications:
+    1. Begin your response with relevant context and technical explanations before introducing code execution. The sandbox implementation should flow naturally within your response, not appear abruptly at the start. Your initial explanation should help users understand the approach you'll take.
+
+    2. Immediately before invoking a sandbox, provide clear step-by-step reasoning in [THINKING] tags that naturally progresses from the task requirements to environment selection. Your reasoning should flow logically through the technical considerations, constraints, and capabilities needed, culminating in a justified environment choice. After determining the appropriate environment, evaluate whether any additional packages beyond the pre-installed ones will be necessary for your implementation. This thinking process should be thorough but concise, focusing on the path that leads to your implementation decisions and resource needs.
+
+    3. If and ONLY if you need packages beyond the pre-installed ones, include the [PACKAGES] section. This section should contain appropriate package manager commands (pip for Python, npm for JavaScript, etc.) within a bash code block. Remember that each environment comes with a set of pre-installed packages - only include this section when absolutely necessary.
+
+    4. Declare your sandbox environment using the [SANDBOX] tag with two required attributes:
+        - env: The specific environment name from the supported list
+        - title: A clear, descriptive title for your implementation
+
+    5. Within the sandbox tags, provide your complete implementation in appropriate code blocks. Your code must:
+        - Be entirely self-contained within a single file
+        - Produce visible output through appropriate channels (stdout, visualization, etc.)
+    
+    6. When modifying existing code, always provide a complete new sandbox implementation. Each sandbox operates independently with no connection to previous ones. Never use partial updates or reference previous code blocks - each implementation must stand entirely on its own.
+[/SANDBOX_INSTRUCTIONS]
+
+[SANDBOX_TEMPLATE]
+    When triggering the sandbox, strictly follow this format:
+
+    [THINKING]
+        Step-by-step reasoning leading to environment selection and package requirements.
+    [/THINKING]
+
+    [PACKAGES]
+    ```bash
+    # ONLY include this tag if additional packages are required
+    ```
+    [/PACKAGES]
+
+    [SANDBOX env="<environment_name>" title="<descriptive title>"]
+    ```<language>
+    <your complete implementation>
+    ```
+    [/SANDBOX]
+[/SANDBOX_TEMPLATE]
+
+[AVAILABLE_SANDBOX]
+You ONLY have access to the following sandbox environment:
+- [SANDBOX: env="{environment_name}"]
+
+If the task requires a different environment, please do NOT attempt to invoke the sandbox. Instead, clearly explain the limitation and provide a detailed solution that does not involve sandbox execution.
+
+Below is the instruction for the {environment_name} environment:
 """
 
 DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION = """
@@ -160,90 +191,122 @@ Generate a single-file Streamlit application using Python:
 - Application MUST support automatic reloading upon code changes
 """
 
-AUTO_SANDBOX_INSTRUCTION = f"""You are an expert software engineer.
-You have the capability to generate **executable** code specifically designed for sandbox environments. When tasked with creating such code, you must ensure it is both secure and optimized for the provided sandbox environments. All code must be entirely **self-contained** within a **single** file, as the sandbox environment can only execute single-file applications.
 
-## Code Format
-When generating code intended for sandbox execution, you MUST strictly follow this exact format with all mandatory sections in the specified order:
+AUTO_SANDBOX_INSTRUCTION = f"""
+[INFO]
+    You are an expert software engineer with the capability to generate executable code specifically designed for sandbox environments. When tasked with creating such code, you must ensure it is both secure and optimized for the provided sandbox environments. All code must be entirely self-contained within a single file, as the sandbox environment can only execute single-file applications.
 
-1. Begin with the mandatory [Sandbox Reasoning] section that contains:
-   Your complete thought process explaining:
-   - Core requirements analysis of the task
-   - Technical capabilities needed for implementation
-   - Evaluation of available sandbox environments
-   - Environmental constraints and considerations
-   - ONLY AT THE END: Final environment selection with justification
+    Regardless of whether the user explicitly requests using the sandbox or executing code, ALWAYS use the sandbox environment and execute the code by default when generating executable code. The only exceptions are:    
+    1. When the user explicitly states that execution is not required
+    2. When handling general topics that are clearly non-executable (theoretical concepts, code explanations, etc.)
+[/INFO]
 
-2. If and only if additional packages beyond the pre-installed ones are required:
-   Include the optional [Additional Packages] section with package installation commands using appropriate package manager (pip, npm, etc.)
+[SANDBOX_INSTRUCTIONS]
+    When collaborating with users to create executable code, follow these comprehensive guidelines:
 
-3. Declare the mandatory [Sandbox: <environment>] section:
-   - Must specify exactly one environment from the supported list
-   - Use the exact format with square brackets
+    1. Begin your response with relevant context and technical explanations before introducing code execution. The sandbox implementation should flow naturally within your response, not appear abruptly at the start. Your initial explanation should help users understand the approach you'll take.
 
-4. Provide the mandatory code implementation:
-   ```<language>
-   <your complete code>
-   ```
+    2. Immediately before invoking a sandbox, provide clear step-by-step reasoning in [THINKING] tags that naturally progresses from the task requirements to environment selection. Your reasoning should flow logically through the technical considerations, constraints, and capabilities needed, culminating in a justified environment choice. After determining the appropriate environment, evaluate whether any additional packages beyond the pre-installed ones will be necessary for your implementation. This thinking process should be thorough but concise, focusing on the path that leads to your implementation decisions and resource needs.
 
-Below is the STRICT format for generating executable code (with optional section in parentheses):
+    3. If and ONLY if you need packages beyond the pre-installed ones, include the [PACKAGES] section. This section should contain appropriate package manager commands (pip for Python, npm for JavaScript, etc.) within a bash code block. Remember that each environment comes with a set of pre-installed packages - only include this section when absolutely necessary.
 
-[Sandbox Reasoning]
-<your step-by-step analysis environment selection reasoning>
-([Additional Packages]
-```bash
-# Installation commands
-```)
-[Sandbox: <environment>]
-```<language>
-<your complete code>
-```
+    4. Declare your sandbox environment using the [SANDBOX] tag with two required attributes:
+        - env: The specific environment name from the supported list
+        - title: A clear, descriptive title for your implementation
 
-Where:
-- Square brackets [] must be used for all section headers
-- Angle brackets <> indicate values you must replace
-- All sections except [Additional Packages] are mandatory
-- Never enclose the overall format structure in code blocks
-- Reasoning must follow a step-by-step analysis with the conclusion at the end
+    5. Within the sandbox tags, provide your complete implementation in appropriate code blocks. Your code must:
+        - Be entirely self-contained within a single file
+        - Produce visible output through appropriate channels (stdout, visualization, etc.)
+    
+    6. When modifying existing code, always provide a complete new sandbox implementation. Each sandbox operates independently with no connection to previous ones. Never use partial updates or reference previous code blocks - each implementation must stand entirely on its own.
+[/SANDBOX_INSTRUCTIONS]
 
-## Sandbox Guidelines
-- Regardless of whether the user explicitly requests using the sandbox or executing code, ALWAYS use the sandbox environment and execute the code by default when generating executable code.  
-The only exceptions are:  
-    1. The user explicitly states that execution is not required;  
-    2. The user's query is about general topics that are clearly non-executable, such as theoretical concepts or general code explanations.  
-- Begin responses with relevant context, technical explanations, or reasoning processes before introducing code execution. The sandbox trigger (including reasoning section) should be integrated naturally within your response.
-- Reasoning section is not visible to the user and is only used to guide your thought process, so do NOT directly start your response with it.
-- Use ONE sandbox environment per response, with EXACTLY one code block within it.
-- When modifying code, provide a complete new sandbox with the full updated codebase. Each sandbox operates independently with no connection to previous sandboxes, and no code or state is preserved between different sandboxes. NEVER use partial updates, omissions, or references to previous code blocks.
+[SANDBOX_TEMPLATE]
+    When triggering the sandbox, strictly follow this format:
 
-## Supported Environments
+    [THINKING]
+        Step-by-step reasoning leading to environment selection and package requirements.
+    [/THINKING]
 
-### Python Code Interpreter ([Sandbox: {SandboxEnvironment.PYTHON_CODE_INTERPRETER}])
-{DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION.strip()}
+    [PACKAGES]
+    ```bash
+    # ONLY include this tag if additional packages are required
+    ```
+    [/PACKAGES]
 
-### JavaScript Code Interpreter ([Sandbox: {SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER}])
-{DEFAULT_JAVASCRIPT_CODE_INTERPRETER_INSTRUCTION.strip()}
+    [SANDBOX env="<environment_name>" title="<descriptive title>"]
+    ```<language>
+    <your complete implementation>
+    ```
+    [/SANDBOX]
+[/SANDBOX_TEMPLATE]
 
-### HTML ([Sandbox: {SandboxEnvironment.HTML}])
-{DEFAULT_HTML_SANDBOX_INSTRUCTION.strip()}
+[AVAILABLE_SANDBOX]
+    1. Python Code Interpreter ([SANDBOX: env="{SandboxEnvironment.PYTHON_CODE_INTERPRETER}"])
+        {DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION.strip().replace('\n', '\n        ')}
 
-### React ([Sandbox: {SandboxEnvironment.REACT}])
-{DEFAULT_REACT_SANDBOX_INSTRUCTION.strip()}
+    2. JavaScript Code Interpreter ([SANDBOX: env="{SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER}"])
+        {DEFAULT_JAVASCRIPT_CODE_INTERPRETER_INSTRUCTION.strip().replace('\n', '\n        ')}
 
-### Vue ([Sandbox: {SandboxEnvironment.VUE}])
-{DEFAULT_VUE_SANDBOX_INSTRUCTION.strip()}
+    3. HTML Environment ([SANDBOX: env="{SandboxEnvironment.HTML}"])
+        {DEFAULT_HTML_SANDBOX_INSTRUCTION.strip().replace('\n', '\n        ')}
 
-### Gradio ([Sandbox: {SandboxEnvironment.GRADIO}])
-{DEFAULT_GRADIO_SANDBOX_INSTRUCTION.strip()}
+    4. React Environment ([SANDBOX: env="{SandboxEnvironment.REACT}"])
+        {DEFAULT_REACT_SANDBOX_INSTRUCTION.strip().replace('\n', '\n        ')}
 
-### Streamlit ([Sandbox: {SandboxEnvironment.STREAMLIT}])
-{DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION.strip()}
+    5. Vue Environment ([SANDBOX: env="{SandboxEnvironment.VUE}"])
+        {DEFAULT_VUE_SANDBOX_INSTRUCTION.strip().replace('\n', '\n        ')}
 
-### NiceGUI ([Sandbox: {SandboxEnvironment.NICEGUI}])
-{DEFAULT_NICEGUI_SANDBOX_INSTRUCTION.strip()}
+    6. Gradio Environment ([SANDBOX: env="{SandboxEnvironment.GRADIO}"])
+        {DEFAULT_GRADIO_SANDBOX_INSTRUCTION.strip().replace('\n', '\n        ')}
+    
+    7. Streamlit Environment ([SANDBOX: env="{SandboxEnvironment.STREAMLIT}"])
+        {DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION.strip().replace('\n', '\n        ')}
+    
+    8. NiceGUI Environment ([SANDBOX: env="{SandboxEnvironment.NICEGUI}"])
+        {DEFAULT_NICEGUI_SANDBOX_INSTRUCTION.strip().replace('\n', '\n        ')}
+    
+    9. PyGame Environment ([SANDBOX: env="{SandboxEnvironment.PYGAME}"])
+        {DEFAULT_PYGAME_SANDBOX_INSTRUCTION.strip().replace('\n', '\n        ')}
+[/AVAILABLE_SANDBOX]
 
-### PyGame ([Sandbox: {SandboxEnvironment.PYGAME}])
-{DEFAULT_PYGAME_SANDBOX_INSTRUCTION.strip()}
+[EXAMPLE]
+    [USER_QUERY]
+        Create a simple line plot showing temperature changes over a week.
+    [/USER_QUERY]
+
+    [RESPONSE]
+        I'll help you create a clear visualization of weekly temperature changes using a line plot. This will help us see the temperature trend throughout the week.
+
+        [THINKING]
+            The task requires basic data visualization to show temperature trends over time. We need a plotting library that can handle time series data and create line plots with customizable features. Temperature data typically needs clear axis labels and grid lines for readability. The python_code_interpreter environment with matplotlib provides all these capabilities in a straightforward way, making it the ideal choice for this visualization. Since matplotlib is pre-installed in the python_code_interpreter environment and our visualization needs are basic, no additional packages will be required for this implementation.
+        [/THINKING]
+
+        [SANDBOX env="python_code_interpreter" title="Weekly Temperature Visualization"]
+        ```python
+        import matplotlib.pyplot as plt
+
+        # Sample temperature data for a week
+        days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        temperatures = [20, 22, 21, 24, 23, 25, 24]  # in Celsius
+
+        # Create the line plot
+        plt.figure(figsize=(10, 6))
+        plt.plot(days, temperatures, marker='o')
+
+        # Customize the plot
+        plt.title('Weekly Temperature Changes')
+        plt.xlabel('Day of Week')
+        plt.ylabel('Temperature (°C)')
+        plt.grid(True)
+
+        plt.show()
+        ```
+        [/SANDBOX]
+
+        This visualization shows a simple line plot of daily temperatures across a week. The blue line connects the temperature points, and markers highlight the specific temperature for each day. The grid lines make it easy to read precise values, while the labels clearly indicate what we're measuring and in what units.
+    [/RESPONSE]
+[/EXAMPLE]
 """.strip()
 
 DEFAULT_SANDBOX_INSTRUCTIONS: dict[SandboxEnvironment, str] = {
@@ -258,6 +321,10 @@ DEFAULT_SANDBOX_INSTRUCTIONS: dict[SandboxEnvironment, str] = {
     SandboxEnvironment.NICEGUI: GENERAL_SANDBOX_INSTRUCTION.format(environment_name=SandboxEnvironment.NICEGUI) + DEFAULT_NICEGUI_SANDBOX_INSTRUCTION.strip(),
     SandboxEnvironment.PYGAME: GENERAL_SANDBOX_INSTRUCTION.format(environment_name=SandboxEnvironment.PYGAME) + DEFAULT_PYGAME_SANDBOX_INSTRUCTION.strip(),
 }
+
+# add a "\n[/AVAILABLE_SANDBOX]" to the end of each instruction
+for env, instruction in DEFAULT_SANDBOX_INSTRUCTIONS.items():
+    DEFAULT_SANDBOX_INSTRUCTIONS[env] = instruction + "\n[/AVAILABLE_SANDBOX]"
 
 print(AUTO_SANDBOX_INSTRUCTION)
 print("-" * 80)
@@ -369,8 +436,8 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool=False) -> tup
             2. code language, 
             3. sandbox environment if auto environment is enabled, otherwise None
     '''
-    # Regular expression to match code in ">>> sandbox" code blocks
-    code_block_regex = r'\[Sandbox: (?P<sandbox_env_name>[^\]]+)\]\s*```(?P<code_lang>\w+)?\n(?P<code>.*?)```'
+    # Regular expression to match code in the tag
+    code_block_regex = r'\[SANDBOX\s+env="(?P<sandbox_env_name>[^"]+)"\s+title="(?P<sandbox_title>[^"]+)"\]\s*```(?P<code_lang>\w+)?\n(?P<code>.*?)```\s*\[/SANDBOX\]'
 
     match = re.search(code_block_regex, message, re.DOTALL)
     if not match:
@@ -378,6 +445,7 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool=False) -> tup
         return None
 
     sandbox_env_name = match.group('sandbox_env_name') or None
+    sandbox_title = match.group('sandbox_title') or ''
     code_lang = match.group('code_lang') or ''
     code = match.group('code').strip()
 
