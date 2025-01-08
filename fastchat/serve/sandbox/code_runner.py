@@ -72,35 +72,27 @@ GENERAL_SANDBOX_INSTRUCTION = """[INFO]
 [SANDBOX_INSTRUCTIONS]
     When collaborating with users to create executable code, follow these comprehensive guidelines:
 
-    1. Begin your response with relevant context and technical explanations before introducing code execution. The sandbox implementation should flow naturally within your response, not appear abruptly at the start. Your initial explanation should help users understand the approach you'll take.
+    1. Begin your response by analyzing requirements and outlining a solution approach, without specifying implementation details like programming language choice. Focus on understanding the problem.
 
-    2. Immediately before invoking a sandbox, provide clear step-by-step reasoning in [THINKING] tags that naturally progresses from the task requirements to environment selection. Your reasoning should flow logically through the technical considerations, constraints, and capabilities needed, culminating in a justified environment choice. After determining the appropriate environment, evaluate whether any additional packages beyond the pre-installed ones will be necessary for your implementation. This thinking process should be thorough but concise, focusing on the path that leads to your implementation decisions and resource needs.
+    2. Immediately before invoking a sandbox, provide a step-by-step reasoning in [THINKING] tags that naturally progresses from the task requirements to environment selection. This thinking process should be thorough but concise, focusing on the path that leads to your implementation decisions.
 
-    3. If and ONLY if you need packages beyond the pre-installed ones, include the [PACKAGES] section. This section should contain appropriate package manager commands (pip for Python, npm for JavaScript, etc.) within a bash code block. Remember that each environment comes with a set of pre-installed packages - only include this section when absolutely necessary.
-
-    4. Declare your sandbox environment using the [SANDBOX] tag with two required attributes:
+    3. Declare your sandbox environment using the [SANDBOX] tag with two required attributes:
         - env: The specific environment name from the supported list
         - title: A clear, descriptive title for your implementation
 
-    5. Within the sandbox tags, provide your complete implementation in appropriate code blocks. Your code must:
+    4. Within the sandbox tags, provide your complete implementation in appropriate code blocks. Your code must:
         - Be entirely self-contained within a single file
         - Produce visible output through appropriate channels (stdout, visualization, etc.)
     
-    6. When modifying existing code, always provide a complete new sandbox implementation. Each sandbox operates independently with no connection to previous ones. Never use partial updates or reference previous code blocks - each implementation must stand entirely on its own.
+    5. When modifying existing code, always provide a complete new sandbox implementation. Each sandbox operates independently with no connection to previous ones. Never use partial updates or reference previous code blocks - each implementation must stand entirely on its own.
 [/SANDBOX_INSTRUCTIONS]
 
 [SANDBOX_TEMPLATE]
     When triggering the sandbox, strictly follow this format:
 
     [THINKING]
-        Step-by-step reasoning leading to environment selection and package requirements.
+        a short reasoning leading to environment selection
     [/THINKING]
-
-    [PACKAGES]
-    ```bash
-    # ONLY include this tag if additional packages are required
-    ```
-    [/PACKAGES]
 
     [SANDBOX env="<environment_name>" title="<descriptive title>"]
     ```<language>
@@ -204,35 +196,27 @@ AUTO_SANDBOX_INSTRUCTION = f"""
 [SANDBOX_INSTRUCTIONS]
     When collaborating with users to create executable code, follow these comprehensive guidelines:
 
-    1. Begin your response with relevant context and technical explanations before introducing code execution. The sandbox implementation should flow naturally within your response, not appear abruptly at the start. Your initial explanation should help users understand the approach you'll take.
+    1. Begin your response by analyzing requirements and outlining a solution approach, without specifying implementation details like programming language choice. Focus on understanding the problem.
 
-    2. Immediately before invoking a sandbox, provide clear step-by-step reasoning in [THINKING] tags that naturally progresses from the task requirements to environment selection. Your reasoning should flow logically through the technical considerations, constraints, and capabilities needed, culminating in a justified environment choice. After determining the appropriate environment, evaluate whether any additional packages beyond the pre-installed ones will be necessary for your implementation. This thinking process should be thorough but concise, focusing on the path that leads to your implementation decisions and resource needs.
+    2. Immediately before invoking a sandbox, provide a step-by-step reasoning in [THINKING] tags that naturally progresses from the task requirements to environment selection. This thinking process should be thorough but concise, focusing on the path that leads to your implementation decisions.
 
-    3. If and ONLY if you need packages beyond the pre-installed ones, include the [PACKAGES] section. This section should contain appropriate package manager commands (pip for Python, npm for JavaScript, etc.) within a bash code block. Remember that each environment comes with a set of pre-installed packages - only include this section when absolutely necessary.
-
-    4. Declare your sandbox environment using the [SANDBOX] tag with two required attributes:
+    3. Declare your sandbox environment using the [SANDBOX] tag with two required attributes:
         - env: The specific environment name from the supported list
         - title: A clear, descriptive title for your implementation
 
-    5. Within the sandbox tags, provide your complete implementation in appropriate code blocks. Your code must:
+    4. Within the sandbox tags, provide your complete implementation in appropriate code blocks. Your code must:
         - Be entirely self-contained within a single file
         - Produce visible output through appropriate channels (stdout, visualization, etc.)
     
-    6. When modifying existing code, always provide a complete new sandbox implementation. Each sandbox operates independently with no connection to previous ones. Never use partial updates or reference previous code blocks - each implementation must stand entirely on its own.
+    5. When modifying existing code, always provide a complete new sandbox implementation. Each sandbox operates independently with no connection to previous ones. Never use partial updates or reference previous code blocks - each implementation must stand entirely on its own.
 [/SANDBOX_INSTRUCTIONS]
 
 [SANDBOX_TEMPLATE]
     When triggering the sandbox, strictly follow this format:
 
     [THINKING]
-        Step-by-step reasoning leading to environment selection and package requirements.
+        a short reasoning leading to environment selection
     [/THINKING]
-
-    [PACKAGES]
-    ```bash
-    # ONLY include this tag if additional packages are required
-    ```
-    [/PACKAGES]
 
     [SANDBOX env="<environment_name>" title="<descriptive title>"]
     ```<language>
@@ -279,7 +263,7 @@ AUTO_SANDBOX_INSTRUCTION = f"""
         I'll help you create a clear visualization of weekly temperature changes using a line plot. This will help us see the temperature trend throughout the week.
 
         [THINKING]
-            The task requires basic data visualization to show temperature trends over time. We need a plotting library that can handle time series data and create line plots with customizable features. Temperature data typically needs clear axis labels and grid lines for readability. The python_code_interpreter environment with matplotlib provides all these capabilities in a straightforward way, making it the ideal choice for this visualization. Since matplotlib is pre-installed in the python_code_interpreter environment and our visualization needs are basic, no additional packages will be required for this implementation.
+            The task requires creating a line plot for time series data. A Python environment with plotting capabilities would be most suitable. Therefore, I'll invoke the Python Code Interpreter sandbox to generate the visualization.
         [/THINKING]
 
         [SANDBOX env="python_code_interpreter" title="Weekly Temperature Visualization"]
