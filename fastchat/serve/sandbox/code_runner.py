@@ -81,10 +81,10 @@ Your code must be presented in markdown format:
 Your code must be written using one of these supported development frameworks and environments:
 - React (JavaScript/TypeScript)
 - Vue (JavaScript/TypeScript)
-- HTML
-- Gradio
-- Streamlit
-- PyGame
+- HTML (Vanilla HTML)
+- Gradio (Python)
+- Streamlit (Python)
+- PyGame (Python)
 - Python Code Interpreter
 - JavaScript Code Interpreter
 
