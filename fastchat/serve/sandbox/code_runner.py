@@ -1357,7 +1357,7 @@ def on_edit_code(
         sandbox_output,
         sandbox_ui,
         sandbox_code,
-        sandbox_dependency
+        sandbox_dependency,
     )
 def on_click_code_message_run(
     state,
@@ -1365,6 +1365,7 @@ def on_click_code_message_run(
     sandbox_output: gr.Markdown,
     sandbox_ui: SandboxComponent,
     sandbox_code: str,
+    sandbox_dependency: gr.Dataframe,
     evt: gr.SelectData
 ) -> Generator[SandboxGradioSandboxComponents, None, None]:
     '''
@@ -1403,7 +1404,13 @@ def on_click_code_message_run(
     sandbox_state['code_dependencies'] = code_dependencies
     if sandbox_state['sandbox_environment'] == SandboxEnvironment.AUTO:
         sandbox_state['auto_selected_sandbox_environment'] = env_selection
-    yield from on_run_code(state, sandbox_state, sandbox_output, sandbox_ui, sandbox_code)
+    yield from on_run_code(
+        state,
+        sandbox_state,
+        sandbox_output,
+        sandbox_ui,
+        sandbox_code,
+    )
 
 def on_run_code(
     state,
