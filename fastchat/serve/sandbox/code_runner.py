@@ -1449,7 +1449,7 @@ def on_run_code(
         gr.Code(value=code, language=code_language, visible=True),
     )
 
-    sandbox_env = sandbox_state['sandbox_environment']
+    sandbox_env = sandbox_state['auto_selected_sandbox_environment']
     code_dependencies = sandbox_state['code_dependencies']
 
     def update_output(message: str):
@@ -1622,7 +1622,7 @@ def on_run_code(
                     ),
                     gr.skip()
                 )
-        case SandboxEnvironment.AUTO:
+        case _:
             yield (
                 gr.Markdown(value=code, visible=True),
                 SandboxComponent(
