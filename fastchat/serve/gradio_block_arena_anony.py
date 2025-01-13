@@ -74,7 +74,7 @@ def vote_last_response(states, vote_type, model_selectors, request: gr.Request):
     if states[0] is None or states[1] is None:
         yield (None, None) + (disable_text,) + (disable_btn,) * 7
         return
-    
+
     with open(get_conv_log_filename(), "a") as fout:
         data = {
             "tstamp": round(time.time(), 4),
@@ -164,17 +164,17 @@ def regenerate_multi(state0, state1, request: gr.Request):
     if state0 is None and state1 is not None:
         if not state1.regen_support:
             state1.skip_next = True
-            return states + [None, state1.to_gradio_chatbot()] + [""] + [no_change_btn] * 8  
+            return states + [None, state1.to_gradio_chatbot()] + [""] + [no_change_btn] * 8
         state1.conv.update_last_message(None)
         return states + [None, state1.to_gradio_chatbot()] + [""] + [disable_btn] * 8
 
     if state1 is None and state0 is not None:
         if not state0.regen_support:
             state0.skip_next = True
-            return states + [state0.to_gradio_chatbot(), None] + [""] + [no_change_btn] * 8    
+            return states + [state0.to_gradio_chatbot(), None] + [""] + [no_change_btn] * 8
         state0.conv.update_last_message(None)
         return states + [state0.to_gradio_chatbot(), None] + [""] + [disable_btn] * 8
-    
+
     if state0.regen_support and state1.regen_support:
         for i in range(num_sides):
             states[i].conv.update_last_message(None)
@@ -183,7 +183,7 @@ def regenerate_multi(state0, state1, request: gr.Request):
         )
     states[0].skip_next = True
     states[1].skip_next = True
-    return states + [x.to_gradio_chatbot() for x in states] + [""] + [no_change_btn] * 8    
+    return states + [x.to_gradio_chatbot() for x in states] + [""] + [no_change_btn] * 8
 
 
 def clear_history(sandbox_state0, sandbox_state1, request: gr.Request):
@@ -266,7 +266,7 @@ def get_battle_pair(
         )
         model_weights.append(weight)
     total_weight = np.sum(model_weights)
-    
+
     model_weights = model_weights / total_weight
     # print(models)
     # print(model_weights)
@@ -463,7 +463,7 @@ def bot_response_multi(
 ):
     logger.info(f"bot_response_multi (anony). ip: {get_ip(request)}")
 
-    if state0 is not None and state1 is not None: 
+    if state0 is not None and state1 is not None:
         if state0.skip_next or state1.skip_next:
             # This generate call is skipped due to invalid inputs
             yield (
@@ -642,14 +642,31 @@ Software Arena extends [Chatbot Arena](https://lmarena.ai/?arena) with powerful 
                                             inputs=[states[chatbotIdx], sandbox_state, sandbox_output, sandbox_ui, sandbox_code],
                                             outputs=[sandbox_output, sandbox_ui, sandbox_code]
                                         )
-
+                                with gr.Tab(label="Dependency", visible=False) as sandbox_dependency_tab:
+                                    sandbox_dependency = gr.Dataframe(
+                                        headers=["Type", "Package", "Version"],
+                                        datatype=["str", "str", "str"],
+                                        col_count=(3, "fixed"),
+                                        value=[["python", "", ""], ["npm", "", ""]],
+                                        interactive=True,
+                                        visible=False,
+                                    )
                                 sandbox_states.append(sandbox_state)
                                 sandboxes_components.append((
                                     sandbox_output,
                                     sandbox_ui,
                                     sandbox_code,
+                                    sandbox_dependency,
                                 ))
-                                sandbox_hidden_components.extend([column, sandbox_title, sandbox_output_tab, sandbox_code_tab])
+                                sandbox_hidden_components.extend(
+                                    [
+                                        column,
+                                        sandbox_title,
+                                        sandbox_output_tab,
+                                        sandbox_code_tab,
+                                        sandbox_dependency_tab,
+                                    ]
+                                )
 
         sandbox_hidden_components.extend([sandbox_env_choice, sandbox_instruction_accordion])
 
@@ -800,8 +817,8 @@ Software Arena extends [Chatbot Arena](https://lmarena.ai/?arena) with powerful 
         flash_buttons, [], btn_list
     )
     clear_btn.click(
-        clear_history, 
-        sandbox_states, 
+        clear_history,
+        sandbox_states,
         sandbox_states
         + states
         + chatbots
@@ -918,14 +935,14 @@ function (a, b, c, d) {
             lambda sandbox_state: gr.update(interactive=sandbox_state['enabled_round'] == 0),
             inputs=[sandbox_state],
             outputs=[sandbox_env_choice])
-        
+
         regenerate_one_side_btns[chatbotIdx].click(regenerate, state, [state, chatbot, textbox] + btn_list
         ).then(
             bot_response,
             [state, temperature, top_p, max_output_tokens, sandbox_state],
             [state, chatbot] + btn_list,
        )
-    
+
         # trigger sandbox run when click code message
         chatbot.select(
             fn=on_click_code_message_run,
