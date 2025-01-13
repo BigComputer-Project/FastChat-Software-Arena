@@ -316,7 +316,7 @@ def clear_history(sandbox_state,request: gr.Request):
         print("Request headers dictionary:", request.headers)
         print("IP address:", request.client.host)
         print("Query parameters:", dict(request.query_params))
-    
+
     state = None
     sandbox_state['enabled_round'] = 0
     sandbox_state['code_to_execute'] = ""
@@ -466,7 +466,7 @@ def bot_response(
     if request:
         ip = get_ip(request)
         logger.info(f"bot_response. ip: {ip}")
-    
+
     start_tstamp = time.time()
     temperature = float(temperature)
     top_p = float(top_p)
@@ -983,14 +983,31 @@ def build_single_model_ui(models, add_promotion_links=False):
                                     outputs=[sandbox_output, sandbox_ui, sandbox_code]
                                 )
 
+                        with gr.Tab(label="Dependency", visible=False) as sandbox_dependency_tab:
+                            sandbox_dependency = gr.Dataframe(
+                                headers=["Type", "Package", "Version"],
+                                datatype=["str", "str", "str"],
+                                col_count=(3, "fixed"),
+                                value=[["python", "", ""], ["npm", "", ""]],
+                                interactive=True,
+                                visible=False,
+                            )
+
                         sandboxes_components.append((
                             sandbox_output,
                             sandbox_ui,
                             sandbox_code,
+                            sandbox_dependency,
                         ))
 
-        sandbox_hidden_components.extend([sandbox_group, sandbox_column, sandbox_title, sandbox_code_tab,
-                                 sandbox_output_tab, sandbox_env_choice, sandbox_instruction_accordion])
+        sandbox_hidden_components.extend([
+            sandbox_group,
+            sandbox_column,
+            sandbox_title,
+            sandbox_output_tab,
+            sandbox_code_tab,
+            sandbox_dependency_tab,
+        ])
 
         sandbox_env_choice.change(
             fn=update_sandbox_config,
@@ -1004,7 +1021,7 @@ def build_single_model_ui(models, add_promotion_links=False):
         # update sandbox global config
         enable_sandbox_checkbox.change (
             fn=lambda visible: update_visibility_for_single_model(visible=visible, component_cnt=len(sandbox_hidden_components)),
-            inputs=[enable_sandbox_checkbox], 
+            inputs=[enable_sandbox_checkbox],
             outputs=sandbox_hidden_components
         ).then(
             fn=update_sandbox_config,
@@ -1095,8 +1112,8 @@ def build_single_model_ui(models, add_promotion_links=False):
         [state, chatbot] + btn_list,
     )
     clear_btn.click(
-        clear_history, 
-        [sandbox_state], 
+        clear_history,
+        [sandbox_state],
         [state, chatbot, textbox] + btn_list + [sandbox_state]
     ).then(
         lambda: gr.update(interactive=True),
@@ -1108,8 +1125,8 @@ def build_single_model_ui(models, add_promotion_links=False):
     )
 
     model_selector.change(
-        clear_history, 
-        [sandbox_state], 
+        clear_history,
+        [sandbox_state],
         [state, chatbot, textbox] + btn_list + [sandbox_state]
     ).then(
         lambda: gr.update(interactive=True),
