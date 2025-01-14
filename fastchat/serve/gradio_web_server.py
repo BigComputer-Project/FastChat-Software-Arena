@@ -38,7 +38,19 @@ from fastchat.model.model_registry import get_model_info, model_info
 from fastchat.serve.api_provider import get_api_provider_stream_iter
 from fastchat.serve.gradio_global_state import Context
 from fastchat.serve.remote_logger import get_remote_logger
-from fastchat.serve.sandbox.code_runner import SandboxGradioSandboxComponents, SandboxEnvironment, DEFAULT_SANDBOX_INSTRUCTIONS, RUN_CODE_BUTTON_HTML, ChatbotSandboxState, SUPPORTED_SANDBOX_ENVIRONMENTS, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, update_sandbox_config, update_visibility_for_single_model
+from fastchat.serve.sandbox.code_runner import (
+    SandboxGradioSandboxComponents,
+    SandboxEnvironment,
+    DEFAULT_SANDBOX_INSTRUCTIONS,
+    RUN_CODE_BUTTON_HTML,
+    ChatbotSandboxState,
+    SUPPORTED_SANDBOX_ENVIRONMENTS,
+    create_chatbot_sandbox_state,
+    on_click_code_message_run,
+    on_edit_code,
+    update_sandbox_config,
+    update_visibility_for_single_model,
+)
 from fastchat.utils import (
     build_logger,
     get_window_url_params_js,
@@ -309,7 +321,7 @@ def regenerate(state, request: gr.Request):
     return (state, state.to_gradio_chatbot(), "") + (disable_btn,) * 5
 
 
-def clear_history(sandbox_state,request: gr.Request):
+def clear_history(sandbox_state, request: gr.Request):
     # ip = get_ip(request)
     # logger.info(f"clear_history. ip: {ip}")
     if request:
@@ -318,15 +330,17 @@ def clear_history(sandbox_state,request: gr.Request):
         print("Query parameters:", dict(request.query_params))
 
     state = None
-    sandbox_state['enabled_round'] = 0
-    sandbox_state['code_to_execute'] = ""
+    sandbox_state["enabled_round"] = 0
+    sandbox_state["code_to_execute"] = ""
     return (state, [], "") + (disable_btn,) * 5 + (sandbox_state,)
+
 
 def clear_sandbox_components(*components):
     updates = []
     for component in components:
         updates.append(gr.update(value="", visible=False))
     return updates
+
 
 def get_ip(request: gr.Request):
     if "cf-connecting-ip" in request.headers:
@@ -339,27 +353,34 @@ def get_ip(request: gr.Request):
         ip = request.client.host
     return ip
 
+
 def update_sandbox_system_message(state, sandbox_state, model_selector):
-    '''
+    """
     Add sandbox instructions to the system message.
-    '''
-    if sandbox_state is None or sandbox_state['enable_sandbox'] is False or sandbox_state["enabled_round"] > 0:
+    """
+    if (
+        sandbox_state is None
+        or sandbox_state["enable_sandbox"] is False
+        or sandbox_state["enabled_round"] > 0
+    ):
         pass
     else:
         if state is None:
             state = State(model_selector)
 
-        sandbox_state['enabled_round'] += 1 # avoid dup
-        environment_instruction = sandbox_state['sandbox_instruction']
+        sandbox_state["enabled_round"] += 1  # avoid dup
+        environment_instruction = sandbox_state["sandbox_instruction"]
         current_system_message = state.conv.get_system_message(state.is_vision)
         new_system_message = f"{current_system_message}\n\n{environment_instruction}"
         state.conv.set_system_message(new_system_message)
     return state, state.to_gradio_chatbot()
 
+
 def update_system_prompt(system_prompt, sandbox_state):
-    if sandbox_state['enabled_round'] == 0:
-        sandbox_state['sandbox_instruction'] = system_prompt
+    if sandbox_state["enabled_round"] == 0:
+        sandbox_state["sandbox_instruction"] = system_prompt
     return sandbox_state
+
 
 def add_text(state, model_selector, sandbox_state, text, request: gr.Request):
     ip = get_ip(request)
@@ -370,7 +391,9 @@ def add_text(state, model_selector, sandbox_state, text, request: gr.Request):
 
     if len(text) <= 0:
         state.skip_next = True
-        return (state, state.to_gradio_chatbot(), "", None) + (no_change_btn,) * sandbox_state["btn_list_length"]
+        return (state, state.to_gradio_chatbot(), "", None) + (
+            no_change_btn,
+        ) * sandbox_state["btn_list_length"]
 
     all_conv_text = state.conv.get_prompt()
     all_conv_text = all_conv_text[-2000:] + "\nuser: " + text
@@ -391,7 +414,9 @@ def add_text(state, model_selector, sandbox_state, text, request: gr.Request):
     text = text[:INPUT_CHAR_LEN_LIMIT]  # Hard cut-off
     state.conv.append_message(state.conv.roles[0], text)
     state.conv.append_message(state.conv.roles[1], None)
-    return (state, state.to_gradio_chatbot(), "") + (disable_btn,) * sandbox_state["btn_list_length"]
+    return (state, state.to_gradio_chatbot(), "") + (disable_btn,) * sandbox_state[
+        "btn_list_length"
+    ]
 
 
 def model_worker_stream_iter(
@@ -455,14 +480,14 @@ def bot_response(
     temperature,
     top_p,
     max_new_tokens,
-    sandbox_state:ChatbotSandboxState,
+    sandbox_state: ChatbotSandboxState,
     request: gr.Request,
     apply_rate_limit=True,
     use_recommended_config=False,
 ):
-    '''
+    """
     The main function for generating responses from the model.
-    '''
+    """
     if request:
         ip = get_ip(request)
         logger.info(f"bot_response. ip: {ip}")
@@ -479,7 +504,9 @@ def bot_response(
     if state.skip_next:
         # This generate call is skipped due to invalid inputs
         state.skip_next = False
-        yield (state, state.to_gradio_chatbot()) + (no_change_btn,) * sandbox_state["btn_list_length"]
+        yield (state, state.to_gradio_chatbot()) + (no_change_btn,) * sandbox_state[
+            "btn_list_length"
+        ]
         return
 
     if apply_rate_limit:
@@ -488,7 +515,9 @@ def bot_response(
             error_msg = RATE_LIMIT_MSG + "\n\n" + ret["reason"]
             logger.info(f"rate limit reached. ip: {ip}. error_msg: {ret['reason']}")
             state.conv.update_last_message(error_msg)
-            yield (state, state.to_gradio_chatbot()) + (no_change_btn,) * sandbox_state["btn_list_length"]
+            yield (state, state.to_gradio_chatbot()) + (no_change_btn,) * sandbox_state[
+                "btn_list_length"
+            ]
             return
 
     conv: Conversation = state.conv
@@ -540,7 +569,10 @@ def bot_response(
     else:
         # Remove system prompt for API-based models unless specified
         # Code Sandbox needs system prompt
-        custom_system_prompt = model_api_dict.get("custom_system_prompt", False) or sandbox_state['enable_sandbox']
+        custom_system_prompt = (
+            model_api_dict.get("custom_system_prompt", False)
+            or sandbox_state["enable_sandbox"]
+        )
         if not custom_system_prompt:
             conv.set_system_message("")
 
@@ -570,7 +602,9 @@ def bot_response(
         yield (state, None) + (no_change_btn,) * sandbox_state["btn_list_length"]
         return
     conv.update_last_message(html_code)
-    yield (state, state.to_gradio_chatbot()) + (disable_btn,) * (sandbox_state["btn_list_length"])
+    yield (state, state.to_gradio_chatbot()) + (disable_btn,) * (
+        sandbox_state["btn_list_length"]
+    )
 
     try:
         data = {"text": ""}
@@ -579,12 +613,14 @@ def bot_response(
                 output = data["text"].strip()
                 conv.update_last_message(output + "▌")
                 # conv.update_last_message(output + html_code)
-                yield (state, state.to_gradio_chatbot()) + (disable_btn,) * sandbox_state["btn_list_length"]
+                yield (state, state.to_gradio_chatbot()) + (
+                    disable_btn,
+                ) * sandbox_state["btn_list_length"]
             else:
                 output = data["text"] + f"\n\n(error_code: {data['error_code']})"
                 conv.update_last_message(output)
                 yield (state, state.to_gradio_chatbot()) + (
-                    (disable_btn,) * (sandbox_state["btn_list_length"]-2),
+                    (disable_btn,) * (sandbox_state["btn_list_length"] - 2),
                     enable_btn,
                     enable_btn,
                 )
@@ -597,18 +633,22 @@ def bot_response(
             last_message = conv.messages[-1]
             # Count occurrences of ``` to ensure code blocks are properly closed
             code_fence_count = last_message[1].count("```")
-            if code_fence_count > 0 and code_fence_count % 2 == 0:  # Even number means closed code blocks
+            if (
+                code_fence_count > 0 and code_fence_count % 2 == 0
+            ):  # Even number means closed code blocks
                 if not last_message[1].endswith(RUN_CODE_BUTTON_HTML):
                     last_message[1] += "\n\n" + RUN_CODE_BUTTON_HTML
 
-        yield (state, state.to_gradio_chatbot()) + (enable_btn,) * sandbox_state["btn_list_length"]
+        yield (state, state.to_gradio_chatbot()) + (enable_btn,) * sandbox_state[
+            "btn_list_length"
+        ]
     except requests.exceptions.RequestException as e:
         conv.update_last_message(
             f"{SERVER_ERROR_MSG}\n\n"
             f"(error_code: {ErrorCode.GRADIO_REQUEST_ERROR}, {e})"
         )
         yield (state, state.to_gradio_chatbot()) + (
-            (disable_btn,) * (sandbox_state["btn_list_length"]-2),
+            (disable_btn,) * (sandbox_state["btn_list_length"] - 2),
             enable_btn,
             enable_btn,
         )
@@ -619,7 +659,7 @@ def bot_response(
             f"(error_code: {ErrorCode.GRADIO_STREAM_UNKNOWN_ERROR}, {e})"
         )
         yield (state, state.to_gradio_chatbot()) + (
-            (disable_btn,) * (sandbox_state["btn_list_length"]-2),
+            (disable_btn,) * (sandbox_state["btn_list_length"] - 2),
             enable_btn,
             enable_btn,
         )
@@ -838,6 +878,7 @@ def get_model_description_md(models):
         ct += 1
     return model_description_md
 
+
 def build_about():
     about_markdown = """
 # About Us
@@ -946,17 +987,28 @@ def build_single_model_ui(models, add_promotion_links=False):
                 info="Run generated code in a remote sandbox",
                 interactive=True,
             )
-            sandbox_env_choice = gr.Dropdown(choices=SUPPORTED_SANDBOX_ENVIRONMENTS, label="Sandbox Environment", interactive=True, visible=False)
+            sandbox_env_choice = gr.Dropdown(
+                choices=SUPPORTED_SANDBOX_ENVIRONMENTS,
+                label="Sandbox Environment",
+                interactive=True,
+                visible=False,
+            )
         with gr.Group():
-            sandbox_instruction_accordion = gr.Accordion("Sandbox & Output", open=True, visible=False)
+            sandbox_instruction_accordion = gr.Accordion(
+                "Sandbox & Output", open=True, visible=False
+            )
             with sandbox_instruction_accordion:
                 sandbox_group = gr.Group(visible=False)
                 with sandbox_group:
-                    sandbox_column = gr.Column(visible=False,scale=1)
+                    sandbox_column = gr.Column(visible=False, scale=1)
                     with sandbox_column:
-                        sandbox_state = gr.State(create_chatbot_sandbox_state(btn_list_length=5))
+                        sandbox_state = gr.State(
+                            create_chatbot_sandbox_state(btn_list_length=5)
+                        )
                         # Add containers for the sandbox output
-                        sandbox_title = gr.Markdown(value=f"### Model Sandbox", visible=False)
+                        sandbox_title = gr.Markdown(
+                            value=f"### Model Sandbox", visible=False
+                        )
                         sandbox_output_tab = gr.Tab(label="Output", visible=False)
                         sandbox_code_tab = gr.Tab(label="Code", visible=False)
                         with sandbox_output_tab:
@@ -969,21 +1021,35 @@ def build_single_model_ui(models, add_promotion_links=False):
                         with sandbox_code_tab:
                             sandbox_code = gr.Code(
                                 value="",
-                                interactive=True, # allow user edit
+                                interactive=True,  # allow user edit
                                 visible=False,
                                 # wrap_lines=True,
-                                label='Sandbox Code',
+                                label="Sandbox Code",
                             )
                             with gr.Row():
-                                sandbox_code_submit_btn = gr.Button(value="Apply Changes", visible=True, interactive=True, variant='primary', size='sm')
+                                sandbox_code_submit_btn = gr.Button(
+                                    value="Apply Changes",
+                                    visible=True,
+                                    interactive=True,
+                                    variant="primary",
+                                    size="sm",
+                                )
                                 # run code when click apply changes
                                 sandbox_code_submit_btn.click(
                                     fn=on_edit_code,
-                                    inputs=[state, sandbox_state, sandbox_output, sandbox_ui, sandbox_code],
-                                    outputs=[sandbox_output, sandbox_ui, sandbox_code]
+                                    inputs=[
+                                        state,
+                                        sandbox_state,
+                                        sandbox_output,
+                                        sandbox_ui,
+                                        sandbox_code,
+                                    ],
+                                    outputs=[sandbox_output, sandbox_ui, sandbox_code],
                                 )
 
-                        with gr.Tab(label="Dependency", visible=False) as sandbox_dependency_tab:
+                        with gr.Tab(
+                            label="Dependency", visible=False
+                        ) as sandbox_dependency_tab:
                             sandbox_dependency = gr.Dataframe(
                                 headers=["Type", "Package", "Version"],
                                 datatype=["str", "str", "str"],
@@ -993,44 +1059,42 @@ def build_single_model_ui(models, add_promotion_links=False):
                                 visible=False,
                             )
 
-                        sandboxes_components.append((
-                            sandbox_output,
-                            sandbox_ui,
-                            sandbox_code,
-                            sandbox_dependency,
-                        ))
+                        sandboxes_components.append(
+                            (
+                                sandbox_output,
+                                sandbox_ui,
+                                sandbox_code,
+                                sandbox_dependency,
+                            )
+                        )
 
-        sandbox_hidden_components.extend([
-            sandbox_group,
-            sandbox_column,
-            sandbox_title,
-            sandbox_output_tab,
-            sandbox_code_tab,
-            sandbox_dependency_tab,
-        ])
+        sandbox_hidden_components.extend(
+            [
+                sandbox_group,
+                sandbox_column,
+                sandbox_title,
+                sandbox_output_tab,
+                sandbox_code_tab,
+                sandbox_dependency_tab,
+            ]
+        )
 
         sandbox_env_choice.change(
             fn=update_sandbox_config,
-            inputs=[
-                enable_sandbox_checkbox,
-                sandbox_env_choice,
-                sandbox_state
-            ],
-            outputs= [sandbox_state]
+            inputs=[enable_sandbox_checkbox, sandbox_env_choice, sandbox_state],
+            outputs=[sandbox_state],
         )
         # update sandbox global config
-        enable_sandbox_checkbox.change (
-            fn=lambda visible: update_visibility_for_single_model(visible=visible, component_cnt=len(sandbox_hidden_components)),
+        enable_sandbox_checkbox.change(
+            fn=lambda visible: update_visibility_for_single_model(
+                visible=visible, component_cnt=len(sandbox_hidden_components)
+            ),
             inputs=[enable_sandbox_checkbox],
-            outputs=sandbox_hidden_components
+            outputs=sandbox_hidden_components,
         ).then(
             fn=update_sandbox_config,
-            inputs=[
-                enable_sandbox_checkbox,
-                sandbox_env_choice,
-                sandbox_state
-            ],
-            outputs=[sandbox_state]
+            inputs=[enable_sandbox_checkbox, sandbox_env_choice, sandbox_state],
+            outputs=[sandbox_state],
         )
 
     with gr.Row():
@@ -1114,33 +1178,27 @@ def build_single_model_ui(models, add_promotion_links=False):
     clear_btn.click(
         clear_history,
         [sandbox_state],
-        [state, chatbot, textbox] + btn_list + [sandbox_state]
-    ).then(
-        lambda: gr.update(interactive=True),
-        outputs=[sandbox_env_choice]
-    ).then(
+        [state, chatbot, textbox] + btn_list + [sandbox_state],
+    ).then(lambda: gr.update(interactive=True), outputs=[sandbox_env_choice]).then(
         clear_sandbox_components,
         inputs=[sandbox_output, sandbox_ui, sandbox_code],
-        outputs=[sandbox_output, sandbox_ui, sandbox_code]
+        outputs=[sandbox_output, sandbox_ui, sandbox_code],
     )
 
     model_selector.change(
         clear_history,
         [sandbox_state],
-        [state, chatbot, textbox] + btn_list + [sandbox_state]
-    ).then(
-        lambda: gr.update(interactive=True),
-        outputs=[sandbox_env_choice]
-    ).then(
+        [state, chatbot, textbox] + btn_list + [sandbox_state],
+    ).then(lambda: gr.update(interactive=True), outputs=[sandbox_env_choice]).then(
         clear_sandbox_components,
         inputs=[sandbox_output, sandbox_ui, sandbox_code],
-        outputs=[sandbox_output, sandbox_ui, sandbox_code]
+        outputs=[sandbox_output, sandbox_ui, sandbox_code],
     )
 
     textbox.submit(
         update_system_prompt,
         inputs=[system_prompt_textbox, sandbox_state],
-        outputs=[sandbox_state]
+        outputs=[sandbox_state],
     ).then(
         add_text,
         [state, model_selector, sandbox_state, textbox],
@@ -1148,21 +1206,23 @@ def build_single_model_ui(models, add_promotion_links=False):
     ).then(
         update_sandbox_system_message,
         [state, sandbox_state, model_selector],
-        [state, chatbot]
+        [state, chatbot],
     ).then(
         bot_response,
         [state, temperature, top_p, max_output_tokens, sandbox_state],
         [state, chatbot] + btn_list,
     ).then(
-        lambda sandbox_state: gr.update(interactive=sandbox_state['enabled_round'] == 0),
+        lambda sandbox_state: gr.update(
+            interactive=sandbox_state["enabled_round"] == 0
+        ),
         inputs=[sandbox_state],
-        outputs=[sandbox_env_choice]
+        outputs=[sandbox_env_choice],
     )
 
     send_btn.click(
         update_system_prompt,
         inputs=[system_prompt_textbox, sandbox_state],
-        outputs=[sandbox_state]
+        outputs=[sandbox_state],
     ).then(
         add_text,
         [state, model_selector, sandbox_state, textbox],
@@ -1170,19 +1230,23 @@ def build_single_model_ui(models, add_promotion_links=False):
     ).then(
         update_sandbox_system_message,
         [state, sandbox_state, model_selector],
-        [state, chatbot]
+        [state, chatbot],
     ).then(
-        lambda sandbox_state: gr.update(sandbox_state['btn_list_length'] == len(btn_list)),
+        lambda sandbox_state: gr.update(
+            sandbox_state["btn_list_length"] == len(btn_list)
+        ),
         inputs=[sandbox_state],
-        outputs=[sandbox_state]
+        outputs=[sandbox_state],
     ).then(
         bot_response,
         [state, temperature, top_p, max_output_tokens, sandbox_state],
         [state, chatbot] + btn_list,
     ).then(
-        lambda sandbox_state: gr.update(interactive=sandbox_state['enabled_round'] == 0),
+        lambda sandbox_state: gr.update(
+            interactive=sandbox_state["enabled_round"] == 0
+        ),
         inputs=[sandbox_state],
-        outputs=[sandbox_env_choice]
+        outputs=[sandbox_env_choice],
     )
 
     sandbox_components = sandboxes_components[0]
@@ -1190,7 +1254,7 @@ def build_single_model_ui(models, add_promotion_links=False):
     chatbot.select(
         fn=on_click_code_message_run,
         inputs=[state, sandbox_state, *sandbox_components],
-        outputs=[*sandbox_components]
+        outputs=[*sandbox_components],
     )
 
     return [state, model_selector]
