@@ -1604,7 +1604,7 @@ def on_run_code(
     gradio fn when run code button is clicked. Update Sandbox components.
     """
     if sandbox_state["enable_sandbox"] is False:
-        yield None, None, None
+        yield None, None, None, None
         return
 
     # validate e2b api key
@@ -1616,7 +1616,7 @@ def on_run_code(
         sandbox_state["code_language"],
     )
     if code is None or code_language is None:
-        yield None, None, None
+        yield None, None, None, None
         return
 
     if code_language == "tsx":
@@ -1630,6 +1630,7 @@ def on_run_code(
         in VALID_GRADIO_CODE_LANGUAGES
         else None
     )
+    python_deps, npm_deps = sandbox_state.get("code_dependencies", ([], []))
 
     # Initialize output with loading message
     output_text = "### Sandbox Execution Log\n\n"
