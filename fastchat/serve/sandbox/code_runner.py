@@ -1410,15 +1410,18 @@ def on_click_code_message_run(
         sandbox_output,
         sandbox_ui,
         sandbox_code,
+        sandbox_dependency,
     )
+
 
 def on_run_code(
     state,
     sandbox_state: ChatbotSandboxState,
     sandbox_output: gr.Markdown,
     sandbox_ui: SandboxComponent,
-    sandbox_code: str
-) -> Generator[tuple[Any, Any, Any], None, None]:
+    sandbox_code: str,
+    sandbox_dependency: gr.Dataframe,
+) -> Generator[tuple[Any, Any, Any, Any], None, None]:
     '''
     gradio fn when run code button is clicked. Update Sandbox components.
     '''
@@ -1444,9 +1447,12 @@ def on_run_code(
     # Initialize output with loading message
     output_text = "### Sandbox Execution Log\n\n"
     yield (
-        gr.Markdown(value=output_text + "🔄 Initializing sandbox environment...", visible=True),
+        gr.Markdown(
+            value=output_text + "🔄 Initializing sandbox environment...", visible=True
+        ),
         SandboxComponent(visible=False),
         gr.Code(value=code, language=code_language, visible=True),
+        gr.skip(),  # For sandbox_dependency
     )
 
     sandbox_env = sandbox_state['auto_selected_sandbox_environment']
@@ -1459,12 +1465,15 @@ def on_run_code(
             gr.Markdown(value=output_text, visible=True, sanitize_html=False),
             gr.skip(),
             gr.skip(),
+            gr.skip(),
         )
 
     match sandbox_env:
         case SandboxEnvironment.HTML:
             yield update_output("🔄 Setting up HTML sandbox...")
-            url, stderr = run_html_sandbox(code=code, code_dependencies=code_dependencies)
+            url, stderr = run_html_sandbox(
+                code=code, code_dependencies=code_dependencies
+            )
             if stderr:
                 yield update_output("❌ HTML sandbox failed to run!")
                 yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
@@ -1633,6 +1642,7 @@ def on_run_code(
                 ),
                 gr.skip()
             )
+
 
 def extract_installation_commands(code: str) -> tuple[list[str], list[str]]:
     '''
