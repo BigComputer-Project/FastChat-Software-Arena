@@ -38,19 +38,8 @@ from fastchat.model.model_registry import get_model_info, model_info
 from fastchat.serve.api_provider import get_api_provider_stream_iter
 from fastchat.serve.gradio_global_state import Context
 from fastchat.serve.remote_logger import get_remote_logger
-from fastchat.serve.sandbox.code_runner import (
-    SandboxGradioSandboxComponents,
-    SandboxEnvironment,
-    DEFAULT_SANDBOX_INSTRUCTIONS,
-    RUN_CODE_BUTTON_HTML,
-    ChatbotSandboxState,
-    SUPPORTED_SANDBOX_ENVIRONMENTS,
-    create_chatbot_sandbox_state,
-    on_click_code_message_run,
-    on_edit_code,
-    update_sandbox_config,
-    update_visibility_for_single_model,
-)
+from fastchat.serve.sandbox.code_runner import SandboxGradioSandboxComponents, SandboxEnvironment, DEFAULT_SANDBOX_INSTRUCTIONS, RUN_CODE_BUTTON_HTML, ChatbotSandboxState, SUPPORTED_SANDBOX_ENVIRONMENTS, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, update_sandbox_config, update_visibility_for_single_model
+from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn
 from fastchat.utils import (
     build_logger,
     get_window_url_params_js,
@@ -82,7 +71,11 @@ enable_moderation = False
 use_remote_storage = False
 
 acknowledgment_md = """
-### Terms of Service
+
+## Found an Issue?
+Please report any bugs or issues to the [GitHub repository](https://github.com/BigComputer-Project/FastChat-Software-Arena).
+
+## Terms of Service
 
 Users are required to agree to the following terms before using the service:
 
@@ -91,13 +84,13 @@ It must not be used for any illegal, harmful, violent, racist, or sexual purpose
 Please do not upload any private information.
 The service collects user data, including dialogue (text and images), editing history, and interface interaction data, and reserves the right to distribute it under a Creative Commons Attribution (CC-BY) or similar license.
 
-#### Please report any bugs or issues to the [GitHub repository](https://github.com/BigComputer-Project/FastChat-Software-Arena)
+## Acknowledgments
 
-### Acknowledgments
+Software Arena extends [Chatbot Arena](https://lmarena.ai/?arena) with powerful code execution capabilities, enabling direct evaluation of LLM-generated programs across a wide range of outputs - from simple computations to complex visual interfaces.
 
 We thank [E2B](https://e2b.dev/), [Hugging Face](https://huggingface.co/) and [CSIRO's Data61](http://data61.csiro.au) for their support and sponsorship:
 
-<div class="sponsor-image-about">
+<div class="sponsor-image-about" style="display: flex; justify-content: center;">
     <img src="https://github.com/e2b-dev/E2B/blob/main/readme-assets/logo-circle.png?raw=true" alt="E2B">
     <img src="https://huggingface.co/datasets/huggingface/brand-assets/resolve/main/hf-logo.png" alt="HuggingFace">
     <img src="https://style.csiro.au/WP_Partners/assets/img/data61-logo.png" alt="Data61">
@@ -908,7 +901,7 @@ Software Arena provides:
 
 ## Open-source Contributors
 - **Lead**: [Terry Yue Zhuo](https://terryyz.github.io/)
-- **Contributors**: [Gary Liu](mailto:ksqod_code@pm.me), [Yuhan Cao](mailto:ycao0081@student.monash.edu), [Tianyang Liu](https://leolty.github.io/), [Kaixin Li](https://likaixin2000.github.io/), [Jihan Yao](https://yaojh18.github.io/)
+- **Contributors**: [Gary Liu](mailto:ksqod_code@pm.me), [Yuhan Cao](mailto:ycao0081@student.monash.edu), [Tianyang Liu](https://leolty.github.io/), [Kaixin Li](https://likaixin2000.github.io/), [Bo (Benjamin) Liu](https://benjamin-eecs.github.io/), [Jihan Yao](https://yaojh18.github.io/)
 - **Advisors**: [Banghua Zhu](https://people.eecs.berkeley.edu/~banghua/), [Torsten Scholak](https://www.servicenow.com/research/author/torsten-scholak.html), [Atin Sood](https://atinsood.com/about/), [Julian McAuley](https://cseweb.ucsd.edu/~jmcauley/), [Xiaoning Du](https://xiaoningdu.github.io/)
 
 ## Contact
@@ -935,14 +928,7 @@ def build_single_model_ui(models, add_promotion_links=False):
         else ""
     )
 
-    notice_markdown = f"""
-# ⚔️ Software Arena: Compare & Test Best AI Chatbots for Code
-[Website](https://bigcomputer-project.github.io) | [Blog](https://bigcomputer-project.github.io/software-arena.html) | [GitHub](https://github.com/BigComputer-Project/FastChat-Software-Arena) | [X](https://x.com/BigComProject)
-{promotion}
-"""
-
     state = gr.State()
-    gr.Markdown(notice_markdown, elem_id="notice_markdown")
 
     with gr.Group(elem_id="share-region-named"):
         with gr.Row(elem_id="model_selector_row"):
@@ -1014,10 +1000,15 @@ def build_single_model_ui(models, add_promotion_links=False):
                         with sandbox_output_tab:
                             sandbox_output = gr.Markdown(value="", visible=False)
                             sandbox_ui = SandboxComponent(
-                                value=("", ""),
+                                value=('', False, []),
                                 show_label=True,
                                 visible=False,
                             )
+                        # log sandbox telemetry
+                        sandbox_ui.change(
+                            fn=log_sandbox_telemetry_gradio_fn,
+                            inputs=[sandbox_state, sandbox_ui],
+                        )
                         with sandbox_code_tab:
                             sandbox_code = gr.Code(
                                 value="",
@@ -1144,8 +1135,8 @@ def build_single_model_ui(models, add_promotion_links=False):
         )
         max_output_tokens = gr.Slider(
             minimum=16,
-            maximum=2048,
-            value=1024,
+            maximum=4096,
+            value=2048,
             step=64,
             interactive=True,
             label="Max output tokens",

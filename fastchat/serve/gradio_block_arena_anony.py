@@ -41,17 +41,9 @@ from fastchat.serve.gradio_web_server import (
     update_sandbox_system_message,
 )
 from fastchat.serve.remote_logger import get_remote_logger
-from fastchat.serve.sandbox.code_runner import (
-    SUPPORTED_SANDBOX_ENVIRONMENTS,
-    SandboxEnvironment,
-    DEFAULT_SANDBOX_INSTRUCTIONS,
-    SandboxGradioSandboxComponents,
-    create_chatbot_sandbox_state,
-    on_click_code_message_run,
-    on_edit_code,
-    update_sandbox_config_multi,
-    update_visibility,
-)
+
+from fastchat.serve.sandbox.code_runner import SUPPORTED_SANDBOX_ENVIRONMENTS, SandboxEnvironment, DEFAULT_SANDBOX_INSTRUCTIONS, SandboxGradioSandboxComponents, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, update_sandbox_config_multi,update_visibility
+from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn
 from fastchat.utils import (
     build_logger,
     moderation_filter,
@@ -240,7 +232,8 @@ def share_click(state0, state1, model_selector0, model_selector1, request: gr.Re
         )
 
 
-SAMPLING_WEIGHTS = {"gpt-3.5-turbo": 0.5, "gpt-4o-mini": 0.5}
+SAMPLING_WEIGHTS = {'gpt-3.5-turbo':0.5,'gpt-4o-mini':0.5, 'gpt-4o':0.5, 'gpt-4-turbo':0.5,
+                    'qwen2.5-coder-32b-instruct': 0.5, 'qwen2.5-72b-instruct': 0.5}
 
 # target model sampling weights will be boosted.
 BATTLE_TARGETS = {}
@@ -564,57 +557,47 @@ def bot_response_multi(
 
 def build_side_by_side_ui_anony(models):
     notice_markdown = f"""
-# ⚔️ Software Arena: Compare & Test Best AI Chatbots for Code
-[Website](https://bigcomputer-project.github.io/software-arena.html) | [GitHub](https://github.com/BigComputer-Project/FastChat-Software-Arena) | [X](https://x.com/CIntProject)
-
-Software Arena extends [Chatbot Arena](https://lmarena.ai/?arena) with powerful code execution capabilities, enabling direct evaluation of LLM-generated programs across a wide range of outputs - from simple computations to complex visual interfaces.
-
-## 📜 How It Works
+## How It Works
 - **Blind Test**: Chat with two anonymous AI chatbots and give them a prompt or task (e.g., build a web app, create a visualization, design an interface).
 - **Run & Interact**: The AI chatbots generate programs that run in a secure sandbox environment. Test the functionality, explore the features, and evaluate the quality of the outputs.
 - **Vote for the Best**: After interacting with both programs, vote for the one that best meets your requirements or provides the superior experience.
 - **Play Fair**: If AI identity reveals, your vote won't count.
-
-## 👇 Start Testing & Voting Now!
 """
 
     states = [gr.State() for _ in range(num_sides)]
     model_selectors = [None] * num_sides
     chatbots: list[gr.Chatbot | None] = [None] * num_sides
 
-    gr.Markdown(notice_markdown, elem_id="notice_markdown")
+    css = """#chatbot-section.chatbot-section {
+        height: 65vh !important;
+    }"""
+    with gr.Blocks(css=css):
+        with gr.Group(elem_id="share-region-anony"):
+            with gr.Row(elem_id="chatbot-section", elem_classes=["chatbot-section"]):
+                for i in range(num_sides):
+                    label = "Model A" if i == 0 else "Model B"
+                    with gr.Column():
+                        chatbots[i] = gr.Chatbot(
+                            label=label,
+                            elem_id="chatbot",
+                            height=550,
+                            show_copy_button=True,
+                            latex_delimiters=[
+                                {"left": "$", "right": "$", "display": False},
+                                {"left": "$$", "right": "$$", "display": True},
+                                {"left": r"\(", "right": r"\)", "display": False},
+                                {"left": r"\[", "right": r"\]", "display": True},
+                            ],
+                        )
 
-    with gr.Group(elem_id="share-region-anony"):
-        with gr.Accordion(
-            f"🔍 Expand to see the descriptions of {len(models)} models", open=False
-        ):
-            model_description_md = get_model_description_md(models)
-            gr.Markdown(model_description_md, elem_id="model_description_markdown")
-        with gr.Row():
-            for i in range(num_sides):
-                label = "Model A" if i == 0 else "Model B"
-                with gr.Column():
-                    chatbots[i] = gr.Chatbot(
-                        label=label,
-                        elem_id="chatbot",
-                        height=650,
-                        show_copy_button=True,
-                        latex_delimiters=[
-                            {"left": "$", "right": "$", "display": False},
-                            {"left": "$$", "right": "$$", "display": True},
-                            {"left": r"\(", "right": r"\)", "display": False},
-                            {"left": r"\[", "right": r"\]", "display": True},
-                        ],
-                    )
-
-        with gr.Row():
-            for i in range(num_sides):
-                with gr.Column():
-                    model_selectors[i] = gr.Markdown(
-                        anony_names[i], elem_id="model_selector_md"
-                    )
-        with gr.Row():
-            slow_warning = gr.Markdown("")
+            with gr.Row():
+                for i in range(num_sides):
+                    with gr.Column():
+                        model_selectors[i] = gr.Markdown(
+                            anony_names[i], elem_id="model_selector_md"
+                        )
+            with gr.Row():
+                slow_warning = gr.Markdown("")
 
     # sandbox states and components
     sandbox_states: list[gr.State] = []  # state for each chatbot
@@ -629,8 +612,8 @@ Software Arena extends [Chatbot Arena](https://lmarena.ai/?arena) with powerful 
         with gr.Row():
             enable_sandbox_checkbox = gr.Checkbox(
                 value=False,
-                label="Enable Sandbox",
-                info="Run generated code in a remote sandbox",
+                label="Enable Remote Sandbox",
+                # info="Run generated code in a remote sandbox",
                 interactive=True,
             )
             sandbox_env_choice = gr.Dropdown(
@@ -665,14 +648,18 @@ Software Arena extends [Chatbot Arena](https://lmarena.ai/?arena) with powerful 
                                         value="", visible=False
                                     )
                                     sandbox_ui = SandboxComponent(
-                                        value=("", ""),
+                                        value=('', False, []),
                                         show_label=True,
                                         visible=False,
                                     )
 
-                                with gr.Tab(
-                                    label="Code", visible=False
-                                ) as sandbox_code_tab:
+                                # log sandbox telemetry
+                                sandbox_ui.change(
+                                    fn=log_sandbox_telemetry_gradio_fn,
+                                    inputs=[sandbox_state, sandbox_ui],
+                                )
+
+                                with gr.Tab(label="Code", visible=False) as sandbox_code_tab:
                                     sandbox_code = gr.Code(
                                         value="",
                                         interactive=True,  # allow user edit
@@ -809,8 +796,8 @@ Software Arena extends [Chatbot Arena](https://lmarena.ai/?arena) with powerful 
         )
         max_output_tokens = gr.Slider(
             minimum=16,
-            maximum=2048,
-            value=2000,
+            maximum=4096,
+            value=2048,
             step=64,
             interactive=True,
             label="Max output tokens",
@@ -834,6 +821,13 @@ Software Arena extends [Chatbot Arena](https://lmarena.ai/?arena) with powerful 
             sandbox_state1["sandbox_instruction"] = system_prompt
         return sandbox_state0, sandbox_state1
 
+    gr.Markdown(notice_markdown, elem_id="notice_markdown")
+    gr.Markdown("## Supported Models")
+    with gr.Accordion(
+        f"🔍 Expand to see the descriptions of {len(models)} models", open=False
+    ):
+        model_description_md = get_model_description_md(models)
+        gr.Markdown(model_description_md, elem_id="model_description_markdown")
     gr.Markdown(acknowledgment_md, elem_id="ack_markdown")
 
     # Register listeners
